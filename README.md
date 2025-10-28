@@ -4,7 +4,7 @@ This is a **Node.js serverless function** that generates PixelSport M3U8 playlis
 
 ## ✨ Features
 
-* ⚡ **On-demand generation**: Playlist is generated fresh on each request
+* ⚡ **On-demand generation**: Playlist is generated on each request and then cached for 2 hours.
 * ☁️ **Serverless**: Runs on Vercel's edge network
 * 🖥️ **VLC compatible**: Uses `EXTVLCOPT` directives for proper streaming
 * 🕒 **Timezone support**: Converts UTC times to Eastern Time with DST handling
