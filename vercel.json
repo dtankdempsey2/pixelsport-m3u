@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/playlist.m3u8",
+      "destination": "/api/playlist"
+    },
+    {
+      "source": "/",
+      "destination": "/api/playlist"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, OPTIONS"
+        }
+      ]
+    }
+  ]
+}
