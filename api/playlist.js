@@ -172,8 +172,8 @@ function buildM3u(events, timezoneOffset = -5, playerType = 'vlc') {
           break;
           
         case 'tivimate':
-          // TiviMate uses pipe notation: URL|User-Agent=...&Referer=...
-          lines.push(`${link}|User-Agent=${VLC_USER_AGENT}&Referer=${VLC_REFERER}`);
+          // TiviMate uses pipe notation: URL|User-Agent=...|Referer=...
+          lines.push(`${link}|User-Agent=${VLC_USER_AGENT}|Referer=${VLC_REFERER}`);
           break;
           
         case 'vlc':
