@@ -134,12 +134,13 @@ function collectLinks(event) {
 }
 
 /**
- * Generate M3U8 playlist text with EXTVLCOPT headers
- * Stream URLs are NOT proxied - they use direct URLs with VLC headers
+ * Generate M3U8 playlist text with headers based on player type
+ * Stream URLs are NOT proxied - they use direct URLs with player-specific headers
  * @param {Array} events - Array of event objects
  * @param {number} timezoneOffset - Timezone offset in hours
+ * @param {string} playerType - Player type: 'vlc', 'kodi', or 'tivimate'
  */
-function buildM3u(events, timezoneOffset = -5) {
+function buildM3u(events, timezoneOffset = -5, playerType = 'vlc') {
   const lines = ["#EXTM3U"];
   
   for (const ev of events) {
@@ -159,11 +160,31 @@ function buildM3u(events, timezoneOffset = -5) {
     
     for (const link of links) {
       lines.push(`#EXTINF:-1 tvg-logo="${logo}" group-title="${league}",${title}`);
-      // VLC options for the stream URLs (not proxied)
-      lines.push(`#EXTVLCOPT:http-user-agent=${VLC_USER_AGENT}`);
-      lines.push(`#EXTVLCOPT:http-referrer=${VLC_REFERER}`);
-      lines.push(`#EXTVLCOPT:http-icy-metadata=${VLC_ICY}`);
-      lines.push(link); // Direct stream URL
+      
+      // Add player-specific headers
+      switch (playerType.toLowerCase()) {
+        case 'kodi':
+          // Kodi uses #KODIPROP format
+          lines.push(`#KODIPROP:inputstream=inputstream.adaptive`);
+          lines.push(`#KODIPROP:inputstream.adaptive.manifest_type=hls`);
+          lines.push(`#KODIPROP:inputstream.adaptive.stream_headers=User-Agent=${encodeURIComponent(VLC_USER_AGENT)}&Referer=${encodeURIComponent(VLC_REFERER)}`);
+          lines.push(link);
+          break;
+          
+        case 'tivimate':
+          // TiviMate uses pipe notation: URL|User-Agent=...&Referer=...
+          lines.push(`${link}|User-Agent=${VLC_USER_AGENT}&Referer=${VLC_REFERER}`);
+          break;
+          
+        case 'vlc':
+        default:
+          // VLC uses #EXTVLCOPT format (default)
+          lines.push(`#EXTVLCOPT:http-user-agent=${VLC_USER_AGENT}`);
+          lines.push(`#EXTVLCOPT:http-referrer=${VLC_REFERER}`);
+          lines.push(`#EXTVLCOPT:http-icy-metadata=${VLC_ICY}`);
+          lines.push(link);
+          break;
+      }
     }
   }
   
@@ -175,6 +196,7 @@ function buildM3u(events, timezoneOffset = -5) {
  * Query params:
  *   - tz: Timezone offset in hours (default: -5 for ET)
  *         Examples: -5 (ET), -6 (CT), -7 (MT), -8 (PT), 0 (UTC)
+ *   - type: Player type - 'vlc' (default), 'kodi', or 'tivimate'
  *   - nocache: Set to '1' to bypass cache (for testing)
  */
 export default async function handler(req, res) {
@@ -190,6 +212,11 @@ export default async function handler(req, res) {
       }
     }
     
+    // Get player type from query parameter, default to 'vlc'
+    const playerType = req.query.type || 'vlc';
+    const validTypes = ['vlc', 'kodi', 'tivimate'];
+    const finalPlayerType = validTypes.includes(playerType.toLowerCase()) ? playerType.toLowerCase() : 'vlc';
+    
     // Allow cache bypass for testing
     if (req.query.nocache === '1') {
       console.log("[*] Cache bypass requested");
@@ -197,7 +224,7 @@ export default async function handler(req, res) {
       cacheTimestamp = null;
     }
     
-    console.log(`[*] Fetching PixelSport live events (timezone offset: ${timezoneOffset})…`);
+    console.log(`[*] Fetching PixelSport live events (timezone: ${timezoneOffset}, player: ${finalPlayerType})…`);
     
     const data = await fetchJson(API_EVENTS);
     const events = data.events || [];
@@ -210,10 +237,10 @@ export default async function handler(req, res) {
         .send("#EXTM3U\n# No live events currently available");
     }
     
-    const playlist = buildM3u(events, timezoneOffset);
+    const playlist = buildM3u(events, timezoneOffset, finalPlayerType);
     
     const cacheAge = cacheTimestamp ? Math.round((Date.now() - cacheTimestamp) / 1000 / 60) : 0;
-    console.log(`[+] Generated playlist with ${events.length} events (cache age: ${cacheAge} min)`);
+    console.log(`[+] Generated playlist with ${events.length} events (cache age: ${cacheAge} min, type: ${finalPlayerType})`);
     
     // Return M3U8 playlist with appropriate headers
     res.status(200)
@@ -221,6 +248,7 @@ export default async function handler(req, res) {
       .setHeader("Content-Disposition", 'attachment; filename="pixelsport.m3u8"')
       .setHeader("Cache-Control", "public, max-age=60") // Cache for 1 minute
       .setHeader("X-Cache-Age", `${cacheAge}`) // Custom header showing cache age in minutes
+      .setHeader("X-Player-Type", finalPlayerType) // Show which player type was used
       .send(playlist);
       
   } catch (error) {
