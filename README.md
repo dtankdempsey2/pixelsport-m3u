@@ -1,6 +1,6 @@
 ## ⚽ PixelSport M3U8 Playlist Generator (Vercel)
 
-This is a **Node.js serverless function** that generates PixelSport M3U8 playlists **on-the-fly** when requested.
+This is a **Node.js serverless function** that generates PixelSport M3U8 playlists.
 
 ## ✨ Features
 
@@ -86,17 +86,6 @@ Valid timezone offsets: `-12` to `+14`.
 ### 📱 IPTV Apps
 
 Use the URL in any M3U8-compatible IPTV app as your playlist source.
-
----
-
-## 🗂️ File Structure
-
-.
-├── api/
-│ └── playlist.js # Main serverless function
-├── vercel.json # Vercel configuration
-├── package.json # Node.js dependencies
-└── README.md # This file
 
 ---
 
