@@ -66,35 +66,31 @@ function utcToTimezone(utcStr, offsetHours = -5) {
 }
 
 /**
- * Fetch JSON data from API using AllOrigins proxy to bypass blocking 
+ * Fetch JSON data from API using AllOrigins proxy to bypass blocking
+ * Uses in-memory cache with 2 hour TTL
+ * This is only for the PixelSport events API, not the stream URLs
  */
 async function fetchJson(url) {
-  console.log("[*] Fetching fresh data...");
-  
-  // Use AllOrigins proxy to bypass Vercel IP blocking for the API call
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-  
+  // --- DISABLE IN-MEMORY CACHE ----
+  // (1) skip the cache check entirely
+  // (2) don’t write cachedData / cacheTimestamp
+  // --------------------------------
+  console.log("[*] Cache disabled – always fetching fresh data…");
+
+  const proxyUrl =
+    `https://api.allorigins.win/get?disableCache=true&url=${encodeURIComponent(url)}&ts=${Date.now()}`;
+
   const response = await fetch(proxyUrl, {
-    headers: {
-      "Accept": "application/json",
-    },
-    signal: AbortSignal.timeout(15000), // 15 second timeout
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(15_000),
   });
-  
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-  
-  const data = await response.json();
-  
-  // AllOrigins returns the content in data.contents
-  if (!data.contents) {
-    throw new Error("No content returned from proxy");
-  }
-  
-  const parsedData = JSON.parse(data.contents);
-  
-  return parsedData;
+
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+  const { contents } = await response.json();
+  if (!contents) throw new Error("No content returned from proxy");
+
+  return JSON.parse(contents);
 }
 
 /**
