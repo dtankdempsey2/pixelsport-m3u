@@ -66,20 +66,10 @@ function utcToTimezone(utcStr, offsetHours = -5) {
 }
 
 /**
- * Fetch JSON data from API using AllOrigins proxy to bypass blocking
- * Uses in-memory cache with 2 hour TTL
- * This is only for the PixelSport events API, not the stream URLs
+ * Fetch JSON data from API using AllOrigins proxy to bypass blocking 
  */
 async function fetchJson(url) {
-  const now = Date.now();
-  
-  // Check if cache is valid
-  if (cachedData && cacheTimestamp && (now - cacheTimestamp) < CACHE_TTL) {
-    console.log(`[+] Using cached data (age: ${Math.round((now - cacheTimestamp) / 1000 / 60)} minutes)`);
-    return cachedData;
-  }
-  
-  console.log("[*] Cache miss or expired, fetching fresh data...");
+  console.log("[*] Fetching fresh data...");
   
   // Use AllOrigins proxy to bypass Vercel IP blocking for the API call
   const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
@@ -103,11 +93,6 @@ async function fetchJson(url) {
   }
   
   const parsedData = JSON.parse(data.contents);
-  
-  // Update cache
-  cachedData = parsedData;
-  cacheTimestamp = now;
-  console.log("[+] Cache updated");
   
   return parsedData;
 }
